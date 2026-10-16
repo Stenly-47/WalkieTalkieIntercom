@@ -1,0 +1,27 @@
+{
+  "relay": {
+    "mode": "websocket",
+    "url": "wss://intercom.ssrapps.my.id/relay",
+    "host": "intercom.ssrapps.my.id",
+    "port": 443,
+    "path": "/relay"
+  },
+  "rooms": [
+    "tiberias",
+    "umum",
+    "multimedia",
+    "keamanan"
+  ],
+  "audio": {
+    "sampleRate": 8000,
+    "frameBytes": 320,
+    "micGain": 3,
+    "speakerVolume": 1,
+    "voxThreshold": 500
+  },
+  "license": {
+    "organization": "GPdI Tiberias Manokwari",
+    "maxUsers": 50,
+    "maxDevices": 50
+  }
+}

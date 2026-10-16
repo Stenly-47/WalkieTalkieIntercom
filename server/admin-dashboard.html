@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Web Admin HT Intercom</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f4f7fb; color: #172033; }
+    .topbar { background: #172033; color: #fff; padding: 14px 24px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+    .brand { font-weight: 700; font-size: 18px; margin-right: 12px; }
+    .nav a { color: #fff; text-decoration: none; margin-right: 14px; font-size: 14px; }
+    .nav a:hover { text-decoration: underline; }
+    .container { padding: 24px; max-width: 1180px; margin: 0 auto; }
+    .card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 18px; box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+    h1, h2 { margin: 0 0 12px 0; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+    .stat { padding: 16px; border-radius: 10px; background: linear-gradient(135deg, #0c7c59, #17a673); color: #fff; }
+    .stat .label { font-size: 12px; opacity: .9; text-transform: uppercase; letter-spacing: .6px; }
+    .stat .value { font-size: 22px; font-weight: 700; margin-top: 6px; }
+    label { display: block; font-size: 13px; margin-bottom: 6px; color: #657184; }
+    input, textarea, button { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 8px; border: 1px solid #cfd7e3; font-size: 14px; }
+    textarea { min-height: 88px; resize: vertical; }
+    button { cursor: pointer; background: #0c7c59; color: #fff; border: none; font-weight: 600; }
+    .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .status { margin-top: 10px; font-weight: 700; }
+    .muted { color: #657184; font-size: 13px; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #e6f7f1; color: #0c7c59; font-size: 12px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">HT Intercom Web Admin</div>
+    <div class="nav">
+      <a href="/">Dashboard</a>
+      <a href="#relay">Relay Server</a>
+      <a href="#rooms">Room / Channel</a>
+      <a href="#audio">Audio</a>
+      <a href="/licenses">Manajemen Lisensi</a>
+      <a href="#user">User</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h1>Dashboard</h1>
+      <div class="row">
+        <div>
+          <label>Admin API Token</label>
+          <input id="apiToken" type="password" placeholder="Masukkan API token admin" />
+        </div>
+        <div style="align-self:end">
+          <button onclick="loadDashboard()">Login Admin</button>
+        </div>
+      </div>
+      <div id="pageStatus" class="status"></div>
+      <div class="muted">Semua halaman admin memakai token ini untuk mengakses data.</div>
+    </div>
+
+    <div class="grid">
+      <div class="stat"><div class="label">Status VPS</div><div id="vpsStatus" class="value">ONLINE VPS + SECURED</div></div>
+      <div class="stat"><div class="label">Relay</div><div id="relayStat" class="value">-</div></div>
+      <div class="stat"><div class="label">Jumlah Room</div><div id="roomsStat" class="value">0</div></div>
+      <div class="stat"><div class="label">Organisasi Lisensi</div><div id="orgStat" class="value">-</div></div>
+      <div class="stat"><div class="label">API Config</div><div id="apiStat" class="value">AMAN</div></div>
+      <div class="stat"><div class="label">Total Lisensi</div><div id="licenseCountStat" class="value">0</div></div>
+    </div>
+
+    <div id="relay" class="card">
+      <h2>Relay Server</h2>
+      <div class="row">
+        <div><label>Relay Host</label><input id="relayHost" /></div>
+        <div><label>Relay Port</label><input id="relayPort" type="number" /></div>
+      </div>
+    </div>
+
+    <div id="rooms" class="card">
+      <h2>Room / Channel</h2>
+      <label>Daftar Room</label>
+      <textarea id="roomsInput" placeholder="Pisahkan room dengan koma atau baris baru"></textarea>
+      <div class="muted">Contoh: tiberias, umum, multimedia, keamanan</div>
+    </div>
+
+    <div id="audio" class="card">
+      <h2>Audio</h2>
+      <div class="row">
+        <div><label>Sample Rate</label><input id="sampleRate" type="number" /></div>
+        <div><label>Frame Bytes</label><input id="frameBytes" type="number" /></div>
+        <div><label>Mic Gain</label><input id="micGain" type="number" /></div>
+        <div><label>Speaker Volume</label><input id="speakerVolume" type="number" /></div>
+        <div><label>VOX Threshold</label><input id="voxThreshold" type="number" /></div>
+      </div>
+    </div>
+
+    <div id="user" class="card">
+      <h2>User</h2>
+      <div class="row">
+        <div><label>Organisasi</label><input id="organization" /></div>
+        <div><label>Max Users</label><input id="maxUsers" type="number" /></div>
+        <div><label>Max Devices</label><input id="maxDevices" type="number" /></div>
+      </div>
+      <div style="margin-top:14px">
+        <button onclick="saveConfig()">Simpan Dashboard</button>
+      </div>
+      <div class="muted" style="margin-top:10px">Menu Manajemen Lisensi lengkap tersedia di halaman terpisah.</div>
+    </div>
+  </div>
+
+  <script>
+    function token() {
+      return document.getElementById("apiToken").value.trim();
+    }
+
+    function setStatus(message, isError) {
+      const el = document.getElementById("pageStatus");
+      el.textContent = message || "";
+      el.style.color = isError ? "#ad2e24" : "#0c7c59";
+    }
+
+    function persistToken() {
+      localStorage.setItem("ht_admin_token", token());
+    }
+
+    function restoreToken() {
+      const saved = localStorage.getItem("ht_admin_token") || "";
+      document.getElementById("apiToken").value = saved;
+      return saved;
+    }
+
+    async function apiGet(path) {
+      const response = await fetch(`${path}${path.includes("?") ? "&" : "?"}apiToken=${encodeURIComponent(token())}`);
+      return response.json();
+    }
+
+    async function apiPost(path, body) {
+      const response = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiToken: token(), ...body })
+      });
+      return response.json();
+    }
+
+    function fillSummary(summary) {
+      document.getElementById("relayStat").textContent = `${summary.relay.host}:${summary.relay.port}`;
+      document.getElementById("roomsStat").textContent = String(summary.rooms.length);
+      document.getElementById("orgStat").textContent = summary.license.organization || "-";
+      document.getElementById("licenseCountStat").textContent = String(summary.license.totalLicenses || 0);
+
+      document.getElementById("relayHost").value = summary.relay.host || "";
+      document.getElementById("relayPort").value = summary.relay.port || 47654;
+      document.getElementById("roomsInput").value = (summary.rooms || []).join(", ");
+      document.getElementById("sampleRate").value = summary.audio.sampleRate || 8000;
+      document.getElementById("frameBytes").value = summary.audio.frameBytes || 320;
+      document.getElementById("micGain").value = summary.audio.micGain || 3;
+      document.getElementById("speakerVolume").value = summary.audio.speakerVolume || 1;
+      document.getElementById("voxThreshold").value = summary.audio.voxThreshold || 500;
+      document.getElementById("organization").value = summary.license.organization || "";
+      document.getElementById("maxUsers").value = summary.license.maxUsers || 0;
+      document.getElementById("maxDevices").value = summary.license.maxDevices || 0;
+    }
+
+    async function loadDashboard() {
+      if (!token()) {
+        setStatus("Masukkan API token admin.", true);
+        return;
+      }
+      persistToken();
+      const result = await apiGet("/api/admin/summary");
+      if (!result.success) {
+        setStatus(result.error || "Gagal memuat dashboard", true);
+        return;
+      }
+      fillSummary(result.summary);
+      setStatus("Dashboard berhasil dimuat");
+    }
+
+    async function saveConfig() {
+      if (!token()) {
+        setStatus("Masukkan API token admin.", true);
+        return;
+      }
+      const rooms = document.getElementById("roomsInput").value
+        .split(/[\n,]+/)
+        .map(item => item.trim().toLowerCase())
+        .filter(Boolean);
+
+      const result = await apiPost("/api/admin/config/update", {
+        relay: {
+          host: document.getElementById("relayHost").value.trim(),
+          port: Number(document.getElementById("relayPort").value || 47654)
+        },
+        rooms,
+        audio: {
+          sampleRate: Number(document.getElementById("sampleRate").value || 8000),
+          frameBytes: Number(document.getElementById("frameBytes").value || 320),
+          micGain: Number(document.getElementById("micGain").value || 3),
+          speakerVolume: Number(document.getElementById("speakerVolume").value || 1),
+          voxThreshold: Number(document.getElementById("voxThreshold").value || 500)
+        },
+        license: {
+          organization: document.getElementById("organization").value.trim(),
+          maxUsers: Number(document.getElementById("maxUsers").value || 0),
+          maxDevices: Number(document.getElementById("maxDevices").value || 0)
+        }
+      });
+
+      if (!result.success) {
+        setStatus(result.error || "Gagal menyimpan dashboard", true);
+        return;
+      }
+      setStatus("Dashboard berhasil disimpan");
+      await loadDashboard();
+    }
+
+    restoreToken();
+    if (token()) {
+      loadDashboard();
+    }
+  </script>
+</body>
+</html>

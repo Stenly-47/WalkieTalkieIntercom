@@ -1,0 +1,81 @@
+
+# Android Studio / Gradle
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+
+# Android release signing
+*.jks
+*.keystore
+keystore.properties
+
+# Secret / konfigurasi lokal
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Hasil build
+*.apk
+*.aab
+
+# Logs dan dependency
+*.log
+node_modules/
+
+# File sementara
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+
+# Android Studio
+.gradle/
+build/
+local.properties
+*.jks
+*.keystore
+keystore.properties
+
+# Environment rahasia
+.env
+.env.*
+!.env.example
+
+# Konfigurasi rahasia
+**/security.json
+**/license-config.json
+**/secrets.json
+**/service-account.json
+
+# Private key
+*.pem
+*.p12
+*.pfx
+
+# Dependency / cache
+node_modules/
+*.log
+
+# Backup privat
+backups/
+database-dumps/
+
+# Backend runtime secrets and operational data
+server/.env
+server/.env.*
+!server/.env.example
+server/security.json
+server/licenses.json
+server/*.log
+server/backups/
+server/database-dumps/
+
+# Build and deployment artifacts
+server/dist/
+server/coverage/
+server/.cache/
+*.map

@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Manajemen Lisensi HT Intercom</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f4f7fb; color: #172033; }
+    .topbar { background: #172033; color: #fff; padding: 14px 24px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+    .brand { font-weight: 700; font-size: 18px; margin-right: 12px; }
+    .nav a { color: #fff; text-decoration: none; margin-right: 14px; font-size: 14px; }
+    .nav a:hover { text-decoration: underline; }
+    .container { padding: 24px; max-width: 1180px; margin: 0 auto; }
+    .card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 18px; box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+    h1, h2 { margin-bottom: 12px; }
+    input, button { padding: 10px 12px; border-radius: 8px; border: 1px solid #cfd7e3; font-size: 14px; }
+    input { width: 100%; box-sizing: border-box; }
+    button { cursor: pointer; background: #0c7c59; color: #fff; border: none; }
+    button.secondary { background: #5f6d82; }
+    button.warn { background: #ad2e24; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #e1e7f0; padding: 10px 8px; text-align: left; vertical-align: top; }
+    th { background: #eef3f9; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .status { margin-top: 10px; font-weight: bold; }
+    .muted { color: #657184; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">HT Intercom Web Admin</div>
+    <div class="nav">
+      <a href="/">Dashboard</a>
+      <a href="/licenses">Manajemen Lisensi</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <h1>Manajemen Lisensi</h1>
+
+    <div class="card">
+      <h2>Login Admin</h2>
+      <div class="grid">
+        <div>
+          <label>API Token</label>
+          <input id="apiToken" type="password" placeholder="Masukkan API token admin" />
+        </div>
+        <div style="align-self:end">
+          <button onclick="loadLicenses()">Muat Lisensi</button>
+        </div>
+      </div>
+      <div id="pageStatus" class="status"></div>
+      <div class="muted">Halaman lisensi tetap memerlukan token admin.</div>
+    </div>
+
+    <div class="card">
+      <h2>Tambah Lisensi Baru</h2>
+      <div class="grid">
+        <div><label>Kode Lisensi</label><input id="newLicenseKey" placeholder="HT-TIBERIAS-002" /></div>
+        <div><label>Nama Customer</label><input id="newCustomerName" placeholder="SSR-2" /></div>
+        <div><label>Aktif Sampai</label><input id="newActiveUntil" type="date" /></div>
+        <div style="align-self:end"><button onclick="createLicense()">Tambah Lisensi</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Daftar Lisensi</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Kode</th>
+            <th>Customer</th>
+            <th>Aktif Sampai</th>
+            <th>Status</th>
+            <th>Device ID</th>
+            <th>Device Name</th>
+            <th>Activated At</th>
+            <th>Last Check At</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="licenseRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    function token() {
+      return document.getElementById("apiToken").value.trim();
+    }
+
+    function persistToken() {
+      localStorage.setItem("ht_admin_token", token());
+    }
+
+    function restoreToken() {
+      const saved = localStorage.getItem("ht_admin_token") || "";
+      document.getElementById("apiToken").value = saved;
+    }
+
+    function setStatus(message, isError) {
+      const el = document.getElementById("pageStatus");
+      el.textContent = message || "";
+      el.style.color = isError ? "#ad2e24" : "#0c7c59";
+    }
+
+    async function apiGet(path) {
+      const response = await fetch(`${path}${path.includes("?") ? "&" : "?"}apiToken=${encodeURIComponent(token())}`);
+      return response.json();
+    }
+
+    async function apiPost(path, body) {
+      const response = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiToken: token(), ...body })
+      });
+      return response.json();
+    }
+
+    function rowInput(id, value) {
+      return `<input id="${id}" value="${(value || "").replace(/"/g, '&quot;')}" />`;
+    }
+
+    function rowText(value) {
+      return value && String(value).length ? value : "-";
+    }
+
+    function renderLicenses(licenses) {
+      const body = document.getElementById("licenseRows");
+      body.innerHTML = "";
+      if (!licenses || !licenses.length) {
+        body.innerHTML = `<tr><td colspan="9">Belum ada lisensi.</td></tr>`;
+        return;
+      }
+      body.innerHTML = licenses.map((license) => `
+        <tr>
+          <td>${license.licenseKey}</td>
+          <td>${rowInput(`customer-${license.licenseKey}`, license.customerName)}</td>
+          <td>${rowInput(`until-${license.licenseKey}`, license.activeUntil)}</td>
+          <td>${license.active ? "Aktif" : "Nonaktif"}</td>
+          <td>${rowText(license.deviceId)}</td>
+          <td>${rowText(license.deviceName)}</td>
+          <td>${rowText(license.activatedAt)}</td>
+          <td>${rowText(license.lastCheckAt)}</td>
+          <td>
+            <div class="actions">
+              <button onclick="updateLicense('${license.licenseKey}')">Simpan</button>
+              <button class="secondary" onclick="toggleLicense('${license.licenseKey}', ${license.active ? "false" : "true"})">${license.active ? "Nonaktifkan" : "Aktifkan"}</button>
+              <button class="warn" onclick="resetDevice('${license.licenseKey}')">Reset Device</button>
+              <button class="warn" onclick="deleteLicense('${license.licenseKey}')">Hapus</button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    async function loadLicenses() {
+      if (!token()) {
+        setStatus("Isi API token dulu.", true);
+        return;
+      }
+      persistToken();
+      const result = await apiGet("/api/license/list");
+      if (!result.success) {
+        setStatus(result.error || "Gagal memuat lisensi", true);
+        return;
+      }
+      renderLicenses(result.licenses);
+      setStatus("Data lisensi berhasil dimuat");
+    }
+
+    async function createLicense() {
+      const licenseKey = document.getElementById("newLicenseKey").value.trim();
+      const customerName = document.getElementById("newCustomerName").value.trim();
+      const activeUntil = document.getElementById("newActiveUntil").value.trim();
+      const result = await apiPost("/api/license/add", { licenseKey, customerName, activeUntil });
+      if (!result.success) {
+        setStatus(result.error || "Gagal menambah lisensi", true);
+        return;
+      }
+      setStatus("Lisensi baru berhasil ditambahkan");
+      await loadLicenses();
+    }
+
+    async function updateLicense(licenseKey) {
+      const customerName = document.getElementById(`customer-${licenseKey}`).value.trim();
+      const activeUntil = document.getElementById(`until-${licenseKey}`).value.trim();
+      const result = await apiPost("/api/license/update", { licenseKey, customerName, activeUntil });
+      if (!result.success) {
+        setStatus(result.error || "Gagal mengubah lisensi", true);
+        return;
+      }
+      setStatus(`Lisensi ${licenseKey} berhasil diperbarui`);
+      await loadLicenses();
+    }
+
+    async function resetDevice(licenseKey) {
+      const result = await apiPost("/api/license/reset-device", { licenseKey });
+      if (!result.success) {
+        setStatus(result.error || "Gagal reset device", true);
+        return;
+      }
+      setStatus(`Device lisensi ${licenseKey} berhasil direset`);
+      await loadLicenses();
+    }
+
+    async function toggleLicense(licenseKey, active) {
+      const result = await apiPost("/api/admin/licenses/toggle", { licenseKey, active });
+      if (!result.success) {
+        setStatus(result.error || "Gagal ubah status lisensi", true);
+        return;
+      }
+      setStatus(`Status lisensi ${licenseKey} berhasil diubah`);
+      await loadLicenses();
+    }
+
+    async function deleteLicense(licenseKey) {
+      const confirmed = window.confirm("Yakin ingin menghapus lisensi ini? Data lisensi dan perangkat yang terikat akan hilang.");
+      if (!confirmed) {
+        return;
+      }
+
+      const result = await apiPost("/api/license/delete", { licenseKey });
+      if (!result.success) {
+        setStatus(result.error || "Gagal menghapus lisensi", true);
+        return;
+      }
+      setStatus(result.message || `Lisensi ${licenseKey} berhasil dihapus`);
+      await loadLicenses();
+    }
+
+    restoreToken();
+    if (token()) {
+      loadLicenses();
+    }
+  </script>
+</body>
+</html>
